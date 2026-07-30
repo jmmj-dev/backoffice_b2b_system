@@ -15,15 +15,17 @@ Este é um sistema BackOffice B2B construído com foco em **arquitetura de softw
 
 O projeto segue Clean Architecture em camadas, com dependências apontando sempre para dentro (a camada de domínio nunca depende de nada externo):
 
-┌─────────────────────────────────────
-│ Interface (CLI / GUI) │ ← ainda não sabe de banco
-├─────────────────────────────────────┤
-│ Serviços │ ← regras de negócio
-├─────────────────────────────────────┤
-│ Repositórios │ ← contratos abstratos + SQLite
-├─────────────────────────────────────┤
-│ Domínio │ ← entidades puras, sem dependências
-└─────────────────────────────────────┘
+Interface (CLI / GUI) -> ainda nao sabe de banco
+|
+v
+Servicos -> regras de negocio
+|
+v
+Repositorios -> contratos abstratos + SQLite
+|
+v
+Dominio -> entidades puras, sem dependencias
+
 
 **Decisões de design aplicadas:**
 - **Repository Pattern** com contratos abstratos (`ABC`), permitindo trocar a implementação de persistência sem tocar na camada de serviço
@@ -43,24 +45,24 @@ O projeto segue Clean Architecture em camadas, com dependências apontando sempr
 ## Estrutura de pastas
 
 backoffice_b2b_system/
-├── src/
-│ ├── dominio/ # Entidades puras (Cliente, Produto, Servico, TabelaPreco)
-│ │ ├── entidades/
-│ │ ├── validadores.py # Validação de CPF/CNPJ
-│ │ └── formatadores.py # Formatação de moeda (padrão brasileiro)
-│ ├── servicos/ # Regras de negócio, com DI via construtor
-│ ├── repositorios/
-│ │ ├── contratos/ # Interfaces abstratas (ABC)
-│ │ └── sqlite/ # Implementação concreta com SQLite
-│ ├── infraestrutura/ # Conexão com banco e schema
-│ └── interface/
-│ ├── cli/ # Interface de linha de comando
-│ └── gui/ # PySide6 (planejado)
-├── testes/
-│ ├── unitarios/ # Testes de entidades e serviços (com fakes em memória)
-│ ├── integracao/ # Testes de repositórios contra SQLite real
-│ └── fakes/ # Repositórios fake para testes de serviço
-└── main.py
+src/
+dominio/ (Entidades puras: Cliente, Produto, Servico, TabelaPreco)
+entidades/
+validadores.py (Validacao de CPF/CNPJ)
+formatadores.py (Formatacao de moeda, padrao brasileiro)
+servicos/ (Regras de negocio, com DI via construtor)
+repositorios/
+contratos/ (Interfaces abstratas - ABC)
+sqlite/ (Implementacao concreta com SQLite)
+infraestrutura/ (Conexao com banco e schema)
+interface/
+cli/ (Interface de linha de comando)
+gui/ (PySide6 - planejado)
+testes/
+unitarios/ (Testes de entidades e servicos, com fakes em memoria)
+integracao/ (Testes de repositorios contra SQLite real)
+fakes/ (Repositorios fake para testes de servico)
+main.py
 
 ## Como rodar
 
