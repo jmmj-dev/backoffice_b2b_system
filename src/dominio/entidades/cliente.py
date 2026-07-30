@@ -19,6 +19,7 @@ class Cliente:
     documento: str
     email: str
     telefone: str
+    tabela_preco_id: Optional[int] = None
     id: Optional[int] = None
     ativo: bool = True
     data_cadastro: datetime = field(default_factory=datetime.now)
@@ -58,3 +59,11 @@ class Cliente:
         if self.tipo_pessoa == TipoPessoa.FISICA:
             return f"{d[0:3]}.{d[3:6]}.{d[6:9]}-{d[9:11]}"
         return f"{d[0:2]}.{d[2:5]}.{d[5:8]}/{d[8:12]}-{d[12:14]}"
+
+    def associar_tabela_preco(self, tabela_preco_id: int) -> None:
+        """Associa o cliente a uma tabela de preço (ex: Varejo, Atacado)."""
+        self.tabela_preco_id = tabela_preco_id
+
+    def remover_tabela_preco(self) -> None:
+        """Remove a associação, o cliente volta a usar a tabela padrão (a definir na camada de serviço)."""
+        self.tabela_preco_id = None
