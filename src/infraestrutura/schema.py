@@ -69,4 +69,34 @@ def criar_tabelas(conexao: sqlite3.Connection) -> None:
         )
         """
     )
+    conexao.execute(
+        """
+        CREATE TABLE IF NOT EXISTS orcamentos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cliente_id INTEGER NOT NULL,
+            tabela_preco_id INTEGER NOT NULL,
+            data_validade TEXT NOT NULL,
+            status TEXT NOT NULL,
+            desconto_percentual TEXT NOT NULL,
+            data_criacao TEXT NOT NULL,
+            FOREIGN KEY (cliente_id) REFERENCES clientes (id),
+            FOREIGN KEY (tabela_preco_id) REFERENCES tabelas_preco (id)
+        )
+        """
+    )
+    conexao.execute(
+        """
+        CREATE TABLE IF NOT EXISTS itens_orcamento (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            orcamento_id INTEGER NOT NULL,
+            tipo_item TEXT NOT NULL,
+            referencia_id INTEGER NOT NULL,
+            descricao TEXT NOT NULL,
+            preco_unitario TEXT NOT NULL,
+            quantidade TEXT NOT NULL,
+            ativo INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY (orcamento_id) REFERENCES orcamentos (id)
+        )
+        """
+    )
     conexao.commit()
