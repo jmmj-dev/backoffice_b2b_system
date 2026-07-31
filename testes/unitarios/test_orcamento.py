@@ -144,3 +144,53 @@ def test_aceitar_orcamento_expirado_lanca_erro():
 
     with pytest.raises(ValueError, match="expirado"):
         orcamento.aceitar()
+
+def test_enviar_registra_evento_automatico_no_historico():
+    orcamento = _criar_orcamento()
+    orcamento.adicionar_item(
+        TipoItem.PRODUTO, referencia_id=1, descricao="A", preco_unitario=Decimal("10.00"), quantidade=Decimal("1")
+    )
+    orcamento.enviar()
+
+    assert len(orcamento.historico) == 1
+    assert orcamento.historico[0].tipo.value == "AUTOMATICO"
+    assert "enviado" in orcamento.historico[0].descricao.lower()
+
+
+def test_adicionar_anotacao_manual():
+    orcamento = _criar_orcamento()
+    registro = orcamento.adicionar_anotacao("Cliente pediu desconto extra, negado.")
+
+    assert registro.tipo.value == "MANUAL"
+    assert len(orcamento.historico) == 1
+
+
+def test_anotacao_manual_permitida_em_qualquer_status():
+    orcamento = _criar_orcamento()
+    orcamento.adicionar_item(
+        TipoItem.PRODUTO, referencia_id=1, descricao="A", preco_unitario=Decimal("10.00"), quantidade=Decimal("1")
+    )
+    orcamento.enviar()
+    orcamento.aceitar()
+    # Não deve lançar erro mesmo com o orçamento já ACEITO
+    orcamento.adicionar_anotacao("Cliente solicitou entrega expressa.")
+    assert len(orcamento.historico) == 3  # enviar + aceitar (automáticos) + anotação manual
+
+
+def test_anotacao_vazia_lanca_erro():
+    orcamento = _criar_orcamento()
+    with pytest.raises(ValueError, match="não pode ser vazia"):
+        orcamento.adicionar_anotacao("   ")
+
+
+def test_fluxo_completo_gera_historico_ordenado():
+    orcamento = _criar_orcamento()
+    orcamento.adicionar_item(
+        TipoItem.PRODUTO, referencia_id=1, descricao="A", preco_unitario=Decimal("10.00"), quantidade=Decimal("1")
+    )
+    orcamento.enviar()
+    orcamento.recusar()
+
+    descricoes = [r.descricao for r in orcamento.historico]
+    assert "enviado" in descricoes[0].lower()
+    assert "recusado" in descricoes[1].lower()        

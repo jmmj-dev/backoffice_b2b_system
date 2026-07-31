@@ -11,13 +11,12 @@ class OrcamentoRepositorioFake(OrcamentoRepositorio):
         self._orcamentos: List[Orcamento] = []
         self._proximo_id = 1
         self._proximo_id_item = 1
+        self._proximo_id_registro = 1
 
     def salvar(self, orcamento: Orcamento) -> Orcamento:
         orcamento.id = self._proximo_id
         self._proximo_id += 1
-        for item in orcamento.itens:
-            item.id = self._proximo_id_item
-            self._proximo_id_item += 1
+        self._atribuir_ids_pendentes(orcamento)
         self._orcamentos.append(copy.deepcopy(orcamento))
         return copy.deepcopy(orcamento)
 
@@ -32,12 +31,19 @@ class OrcamentoRepositorioFake(OrcamentoRepositorio):
         return [copy.deepcopy(o) for o in self._orcamentos]
 
     def atualizar(self, orcamento: Orcamento) -> Orcamento:
-        for item in orcamento.itens:
-            if item.id is None:
-                item.id = self._proximo_id_item
-                self._proximo_id_item += 1
+        self._atribuir_ids_pendentes(orcamento)
         for i, o in enumerate(self._orcamentos):
             if o.id == orcamento.id:
                 self._orcamentos[i] = copy.deepcopy(orcamento)
                 return copy.deepcopy(orcamento)
         raise ValueError(f"Orçamento com id {orcamento.id} não encontrado para atualização.")
+
+    def _atribuir_ids_pendentes(self, orcamento: Orcamento) -> None:
+        for item in orcamento.itens:
+            if item.id is None:
+                item.id = self._proximo_id_item
+                self._proximo_id_item += 1
+        for registro in orcamento.historico:
+            if registro.id is None:
+                registro.id = self._proximo_id_registro
+                self._proximo_id_registro += 1

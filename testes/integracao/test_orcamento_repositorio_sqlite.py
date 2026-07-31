@@ -143,3 +143,28 @@ def test_listar_todos_nao_carrega_itens(contexto):
     listados = repositorio.listar_todos()
     assert len(listados) == 1
     assert listados[0].itens == []
+
+def test_historico_e_persistido_e_recarregado(contexto):
+    repositorio, cliente_id, tabela_preco_id = contexto
+    orcamento = _criar_orcamento(cliente_id, tabela_preco_id)
+    orcamento.adicionar_item(
+        TipoItem.PRODUTO, referencia_id=1, descricao="A", preco_unitario=Decimal("10.00"), quantidade=Decimal("1")
+    )
+    orcamento.enviar()
+    orcamento.adicionar_anotacao("Cliente pediu revisão de prazo.")
+    repositorio.salvar(orcamento)
+
+    recarregado = repositorio.buscar_por_id(orcamento.id)
+    assert len(recarregado.historico) == 2
+    assert recarregado.historico[0].tipo.value == "AUTOMATICO"
+    assert recarregado.historico[1].tipo.value == "MANUAL"
+
+
+def test_listar_todos_nao_carrega_historico(contexto):
+    repositorio, cliente_id, tabela_preco_id = contexto
+    orcamento = _criar_orcamento(cliente_id, tabela_preco_id)
+    orcamento.adicionar_anotacao("Nota qualquer.")
+    repositorio.salvar(orcamento)
+
+    listados = repositorio.listar_todos()
+    assert listados[0].historico == []    

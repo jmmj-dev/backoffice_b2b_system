@@ -1,10 +1,17 @@
-"""Implementação SQLite do contrato OrcamentoRepositorio, tratando Orcamento como agregado."""
+"""Implementação SQLite do contrato OrcamentoRepositorio, tratando Orcamento como agregado
+(itens + histórico de negociação)."""
 import sqlite3
 from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from src.dominio.entidades.orcamento import ItemOrcamento, Orcamento, StatusOrcamento
+from src.dominio.entidades.orcamento import (
+    ItemOrcamento,
+    Orcamento,
+    RegistroHistorico,
+    StatusOrcamento,
+    TipoRegistroHistorico,
+)
 from src.dominio.entidades.tabela_preco import TipoItem
 from src.repositorios.contratos.orcamento_repositorio import OrcamentoRepositorio
 
@@ -32,6 +39,8 @@ class OrcamentoRepositorioSQLite(OrcamentoRepositorio):
         orcamento.id = cursor.lastrowid
         for item in orcamento.itens:
             self._salvar_item(orcamento.id, item)
+        for registro in orcamento.historico:
+            self._salvar_registro_historico(orcamento.id, registro)
         self._conexao.commit()
         return orcamento
 
@@ -39,17 +48,17 @@ class OrcamentoRepositorioSQLite(OrcamentoRepositorio):
         linha = self._conexao.execute("SELECT * FROM orcamentos WHERE id = ?", (id,)).fetchone()
         if linha is None:
             return None
-        return self._linha_para_orcamento(linha, carregar_itens=True)
+        return self._linha_para_orcamento(linha, carregar_detalhes=True)
 
     def listar_por_cliente(self, cliente_id: int) -> List[Orcamento]:
         linhas = self._conexao.execute(
             "SELECT * FROM orcamentos WHERE cliente_id = ?", (cliente_id,)
         ).fetchall()
-        return [self._linha_para_orcamento(linha, carregar_itens=True) for linha in linhas]
+        return [self._linha_para_orcamento(linha, carregar_detalhes=True) for linha in linhas]
 
     def listar_todos(self) -> List[Orcamento]:
         linhas = self._conexao.execute("SELECT * FROM orcamentos").fetchall()
-        return [self._linha_para_orcamento(linha, carregar_itens=False) for linha in linhas]
+        return [self._linha_para_orcamento(linha, carregar_detalhes=False) for linha in linhas]
 
     def atualizar(self, orcamento: Orcamento) -> Orcamento:
         self._conexao.execute(
@@ -67,11 +76,12 @@ class OrcamentoRepositorioSQLite(OrcamentoRepositorio):
         )
         for item in orcamento.itens:
             self._salvar_item(orcamento.id, item)
+        for registro in orcamento.historico:
+            self._salvar_registro_historico(orcamento.id, registro)
         self._conexao.commit()
         return orcamento
 
     def _salvar_item(self, orcamento_id: int, item: ItemOrcamento) -> None:
-        """Insere o item se ele ainda não tem id, ou atualiza se já existir. (Upsert simples)"""
         if item.id is None:
             cursor = self._conexao.execute(
                 """
@@ -96,7 +106,17 @@ class OrcamentoRepositorioSQLite(OrcamentoRepositorio):
                 (int(item.ativo), item.id),
             )
 
-    def _linha_para_orcamento(self, linha: sqlite3.Row, carregar_itens: bool) -> Orcamento:
+    def _salvar_registro_historico(self, orcamento_id: int, registro: RegistroHistorico) -> None:
+        """Insere um registro de histórico novo. Registros de histórico nunca são atualizados
+        ou apagados depois de criados — são um log de auditoria imutável."""
+        if registro.id is None:
+            cursor = self._conexao.execute(
+                "INSERT INTO historico_orcamento (orcamento_id, tipo, descricao, data_hora) VALUES (?, ?, ?, ?)",
+                (orcamento_id, registro.tipo.value, registro.descricao, registro.data_hora.isoformat()),
+            )
+            registro.id = cursor.lastrowid
+
+    def _linha_para_orcamento(self, linha: sqlite3.Row, carregar_detalhes: bool) -> Orcamento:
         orcamento = Orcamento(
             cliente_id=linha["cliente_id"],
             tabela_preco_id=linha["tabela_preco_id"],
@@ -107,7 +127,7 @@ class OrcamentoRepositorioSQLite(OrcamentoRepositorio):
         orcamento.desconto_percentual = Decimal(linha["desconto_percentual"])
         orcamento.data_criacao = datetime.fromisoformat(linha["data_criacao"])
 
-        if carregar_itens:
+        if carregar_detalhes:
             linhas_itens = self._conexao.execute(
                 "SELECT * FROM itens_orcamento WHERE orcamento_id = ?", (orcamento.id,)
             ).fetchall()
@@ -122,5 +142,18 @@ class OrcamentoRepositorioSQLite(OrcamentoRepositorio):
                 item.id = linha_item["id"]
                 item.ativo = bool(linha_item["ativo"])
                 orcamento.itens.append(item)
+
+            linhas_historico = self._conexao.execute(
+                "SELECT * FROM historico_orcamento WHERE orcamento_id = ? ORDER BY data_hora",
+                (orcamento.id,),
+            ).fetchall()
+            for linha_registro in linhas_historico:
+                registro = RegistroHistorico(
+                    tipo=TipoRegistroHistorico(linha_registro["tipo"]),
+                    descricao=linha_registro["descricao"],
+                )
+                registro.id = linha_registro["id"]
+                registro.data_hora = datetime.fromisoformat(linha_registro["data_hora"])
+                orcamento.historico.append(registro)
 
         return orcamento
