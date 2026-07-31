@@ -94,6 +94,12 @@ class ServicoOrcamento:
         orcamento.aplicar_desconto(percentual)
         return self._repositorio.atualizar(orcamento)
 
+    def adicionar_anotacao(self, orcamento_id: int, texto: str) -> Orcamento:
+        """Adiciona uma anotação manual ao histórico de negociação do orçamento."""
+        orcamento = self._buscar_ou_lancar_erro(orcamento_id)
+        orcamento.adicionar_anotacao(texto)
+        return self._repositorio.atualizar(orcamento)
+
     def enviar_orcamento(self, orcamento_id: int) -> Orcamento:
         orcamento = self._buscar_ou_lancar_erro(orcamento_id)
         orcamento.enviar()

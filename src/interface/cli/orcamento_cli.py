@@ -27,6 +27,7 @@ def exibir_menu_orcamento(
         print("8. Enviar orçamento")
         print("9. Aceitar orçamento")
         print("10. Recusar orçamento")
+        print("11. Adicionar anotação ao histórico")
         print("0. Voltar")
 
         opcao = input("Escolha uma opção: ").strip()
@@ -51,6 +52,8 @@ def exibir_menu_orcamento(
             _aceitar(servico_orcamento)
         elif opcao == "10":
             _recusar(servico_orcamento)
+        elif opcao == "11":
+            _adicionar_anotacao(servico_orcamento)
         elif opcao == "0":
             return
         else:
@@ -133,6 +136,12 @@ def _ver_detalhes(servico_orcamento: ServicoOrcamento) -> None:
     print(f"\nSubtotal: R$ {orcamento.calcular_subtotal()}")
     print(f"Desconto ({orcamento.desconto_percentual}%): R$ {orcamento.calcular_valor_desconto()}")
     print(f"Total: R$ {orcamento.calcular_total()}")
+
+    if orcamento.historico:
+        print("\nHistórico de negociação:")
+        for registro in orcamento.historico:
+            marca = "🤖" if registro.tipo.value == "AUTOMATICO" else "📝"
+            print(f"  {marca} [{registro.data_hora.strftime('%d/%m/%Y %H:%M')}] {registro.descricao}")
 
 
 def _adicionar_item(
@@ -225,3 +234,12 @@ def _recusar(servico_orcamento: ServicoOrcamento) -> None:
         print("\n✅ Orçamento recusado.")
     except ValueError as erro:
         print(f"\n❌ {erro}")
+
+def _adicionar_anotacao(servico_orcamento: ServicoOrcamento) -> None:
+    id_str = input("\nId do orçamento: ").strip()
+    texto = input("Anotação: ").strip()
+    try:
+        servico_orcamento.adicionar_anotacao(int(id_str), texto)
+        print("\n✅ Anotação adicionada ao histórico.")
+    except ValueError as erro:
+        print(f"\n❌ {erro}")        

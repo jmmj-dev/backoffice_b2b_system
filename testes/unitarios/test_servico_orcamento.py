@@ -129,3 +129,11 @@ def test_listar_por_cliente(contexto):
     servico.criar_orcamento(cliente.id, data_validade=date.today() + timedelta(days=15))
     orcamentos = servico.listar_por_cliente(cliente.id)
     assert len(orcamentos) == 1
+
+def test_adicionar_anotacao_via_servico(contexto):
+    servico, cliente, _, _, _ = contexto
+    orcamento = servico.criar_orcamento(cliente.id, data_validade=date.today() + timedelta(days=15))
+
+    atualizado = servico.adicionar_anotacao(orcamento.id, "Cliente pediu prazo maior de entrega.")
+    assert len(atualizado.historico) == 1
+    assert atualizado.historico[0].descricao == "Cliente pediu prazo maior de entrega."    
