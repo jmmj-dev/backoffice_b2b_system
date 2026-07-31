@@ -4,11 +4,15 @@ from typing import List
 from src.dominio.entidades.cliente import Cliente
 from src.dominio.validadores import limpar_documento
 from src.repositorios.contratos.cliente_repositorio import ClienteRepositorio
+from src.repositorios.contratos.tabela_preco_repositorio import TabelaPrecoRepositorio
 
 
 class ServicoCliente:
-    def __init__(self, cliente_repositorio: ClienteRepositorio) -> None:
+    def __init__(
+        self, cliente_repositorio: ClienteRepositorio, tabela_preco_repositorio: TabelaPrecoRepositorio
+    ) -> None:
         self._repositorio = cliente_repositorio
+        self._tabela_preco_repositorio = tabela_preco_repositorio
 
     def criar_cliente(self, cliente: Cliente) -> Cliente:
         """Cadastra um novo cliente, impedindo duplicidade de documento (mesmo com cliente inativo)."""
@@ -38,6 +42,25 @@ class ServicoCliente:
             if outro is not None and outro.id != cliente.id:
                 raise ValueError(f"O documento {cliente.documento_formatado()} já pertence a outro cliente.")
 
+        return self._repositorio.atualizar(cliente)
+
+    def associar_tabela_preco(self, cliente_id: int, tabela_preco_id: int) -> Cliente:
+        """Associa um cliente a uma tabela de preço, validando que ela existe e está ativa."""
+        cliente = self._buscar_ou_lancar_erro(cliente_id)
+
+        tabela = self._tabela_preco_repositorio.buscar_por_id(tabela_preco_id)
+        if tabela is None:
+            raise ValueError(f"Tabela de preço com id {tabela_preco_id} não encontrada.")
+        if not tabela.ativa:
+            raise ValueError(f"Tabela de preço '{tabela.nome}' está inativa.")
+
+        cliente.associar_tabela_preco(tabela_preco_id)
+        return self._repositorio.atualizar(cliente)
+
+    def remover_tabela_preco(self, cliente_id: int) -> Cliente:
+        """Remove a associação de tabela de preço do cliente."""
+        cliente = self._buscar_ou_lancar_erro(cliente_id)
+        cliente.remover_tabela_preco()
         return self._repositorio.atualizar(cliente)
 
     def inativar_cliente(self, id: int) -> Cliente:

@@ -1,6 +1,7 @@
 """Testes do ServicoCliente, usando repositório fake em memória (sem tocar banco real)."""
 import pytest
 
+from testes.fakes.tabela_preco_repositorio_fake import TabelaPrecoRepositorioFake
 from src.dominio.entidades.cliente import Cliente, TipoPessoa
 from src.servicos.servico_cliente import ServicoCliente
 from testes.fakes.cliente_repositorio_fake import ClienteRepositorioFake
@@ -11,7 +12,7 @@ CNPJ_VALIDO = "11.222.333/0001-81"
 
 @pytest.fixture
 def servico():
-    return ServicoCliente(ClienteRepositorioFake())
+    return ServicoCliente(ClienteRepositorioFake(), TabelaPrecoRepositorioFake())
 
 
 def _criar_cliente(documento=CPF_VALIDO, tipo=TipoPessoa.FISICA, nome="Maria"):
@@ -92,3 +93,33 @@ def test_listar_clientes_ativos_exclui_inativos(servico):
 
     todos = servico.listar_todos_os_clientes()
     assert len(todos) == 2
+
+def test_associar_tabela_preco_valida(servico):
+    from decimal import Decimal
+    from src.dominio.entidades.tabela_preco import TabelaPreco
+
+    tabela_repo = servico._tabela_preco_repositorio
+    tabela = tabela_repo.salvar(TabelaPreco(nome="Varejo"))
+
+    cliente = servico.criar_cliente(_criar_cliente())
+    atualizado = servico.associar_tabela_preco(cliente.id, tabela.id)
+    assert atualizado.tabela_preco_id == tabela.id
+
+
+def test_associar_tabela_preco_inexistente_lanca_erro(servico):
+    cliente = servico.criar_cliente(_criar_cliente())
+    with pytest.raises(ValueError, match="não encontrada"):
+        servico.associar_tabela_preco(cliente.id, 9999)
+
+
+def test_associar_tabela_preco_inativa_lanca_erro(servico):
+    from src.dominio.entidades.tabela_preco import TabelaPreco
+
+    tabela_repo = servico._tabela_preco_repositorio
+    tabela = tabela_repo.salvar(TabelaPreco(nome="Varejo"))
+    tabela.inativar()
+    tabela_repo.atualizar(tabela)
+
+    cliente = servico.criar_cliente(_criar_cliente())
+    with pytest.raises(ValueError, match="está inativa"):
+        servico.associar_tabela_preco(cliente.id, tabela.id)    

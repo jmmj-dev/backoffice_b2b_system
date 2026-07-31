@@ -1,11 +1,10 @@
 """Interface de linha de comando para gestão de Clientes."""
-from decimal import Decimal
-
 from src.dominio.entidades.cliente import Cliente, TipoPessoa
 from src.servicos.servico_cliente import ServicoCliente
+from src.servicos.servico_tabela_preco import ServicoTabelaPreco
 
 
-def exibir_menu_cliente(servico: ServicoCliente) -> None:
+def exibir_menu_cliente(servico: ServicoCliente, servico_tabela_preco: ServicoTabelaPreco) -> None:
     """Loop do submenu de Cliente. Retorna quando o usuário escolhe voltar."""
     while True:
         print("\n--- Clientes ---")
@@ -13,8 +12,10 @@ def exibir_menu_cliente(servico: ServicoCliente) -> None:
         print("2. Listar clientes ativos")
         print("3. Buscar cliente por id")
         print("4. Atualizar telefone/email de um cliente")
-        print("5. Inativar cliente")
-        print("6. Reativar cliente")
+        print("5. Associar tabela de preço a um cliente")
+        print("6. Remover tabela de preço de um cliente")
+        print("7. Inativar cliente")
+        print("8. Reativar cliente")
         print("0. Voltar")
 
         opcao = input("Escolha uma opção: ").strip()
@@ -28,8 +29,12 @@ def exibir_menu_cliente(servico: ServicoCliente) -> None:
         elif opcao == "4":
             _atualizar_contato_cliente(servico)
         elif opcao == "5":
-            _inativar_cliente(servico)
+            _associar_tabela_preco(servico, servico_tabela_preco)
         elif opcao == "6":
+            _remover_tabela_preco(servico)
+        elif opcao == "7":
+            _inativar_cliente(servico)
+        elif opcao == "8":
             _reativar_cliente(servico)
         elif opcao == "0":
             return
@@ -65,7 +70,8 @@ def _listar_clientes_ativos(servico: ServicoCliente) -> None:
         print("Nenhum cliente ativo cadastrado.")
         return
     for cliente in clientes:
-        print(f"[{cliente.id}] {cliente.nome} — {cliente.documento_formatado()} — {cliente.email}")
+        tabela_info = f"tabela_preco_id={cliente.tabela_preco_id}" if cliente.tabela_preco_id else "sem tabela"
+        print(f"[{cliente.id}] {cliente.nome} — {cliente.documento_formatado()} — {cliente.email} ({tabela_info})")
 
 
 def _buscar_cliente_por_id(servico: ServicoCliente) -> None:
@@ -73,11 +79,13 @@ def _buscar_cliente_por_id(servico: ServicoCliente) -> None:
     try:
         cliente = servico.buscar_por_id(int(id_str))
         status = "ativo" if cliente.ativo else "inativo"
+        tabela_info = str(cliente.tabela_preco_id) if cliente.tabela_preco_id else "nenhuma"
         print(
             f"\n[{cliente.id}] {cliente.nome} ({status})\n"
             f"Documento: {cliente.documento_formatado()}\n"
             f"E-mail: {cliente.email}\n"
-            f"Telefone: {cliente.telefone}"
+            f"Telefone: {cliente.telefone}\n"
+            f"Tabela de preço: {tabela_info}"
         )
     except ValueError as erro:
         print(f"\n❌ {erro}")
@@ -106,6 +114,32 @@ def _atualizar_contato_cliente(servico: ServicoCliente) -> None:
         print("\n✅ Cliente atualizado com sucesso!")
     except ValueError as erro:
         print(f"\n❌ Erro ao atualizar: {erro}")
+
+
+def _associar_tabela_preco(servico: ServicoCliente, servico_tabela_preco: ServicoTabelaPreco) -> None:
+    print("\n-- Associar tabela de preço a um cliente --")
+    cliente_id_str = input("Id do cliente: ").strip()
+
+    print("\nTabelas de preço ativas disponíveis:")
+    for tabela in servico_tabela_preco.listar_tabelas_ativas():
+        print(f"  [{tabela.id}] {tabela.nome}")
+
+    tabela_id_str = input("\nId da tabela de preço: ").strip()
+
+    try:
+        servico.associar_tabela_preco(int(cliente_id_str), int(tabela_id_str))
+        print("\n✅ Tabela de preço associada com sucesso!")
+    except ValueError as erro:
+        print(f"\n❌ Erro ao associar: {erro}")
+
+
+def _remover_tabela_preco(servico: ServicoCliente) -> None:
+    id_str = input("\nId do cliente: ").strip()
+    try:
+        servico.remover_tabela_preco(int(id_str))
+        print("\n✅ Tabela de preço removida do cliente.")
+    except ValueError as erro:
+        print(f"\n❌ {erro}")
 
 
 def _inativar_cliente(servico: ServicoCliente) -> None:
