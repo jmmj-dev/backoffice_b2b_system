@@ -13,13 +13,15 @@ from src.servicos.servico_servico import ServicoServico
 from src.interface.gui.telas.tabela_preco_view import TabelaPrecoView
 from src.interface.gui.telas.orcamento_view import OrcamentoView
 from src.servicos.servico_orcamento import ServicoOrcamento
+from src.interface.gui.telas.pedido_venda_view import PedidoVendaView
+from src.servicos.servico_pedido_venda import ServicoPedidoVenda
 
 
 class MainWindow(QMainWindow):
     def __init__(
         self, servico_cliente: ServicoCliente, servico_tabela_preco: ServicoTabelaPreco,
         servico_produto: ServicoProduto, servico_servico: ServicoServico,
-        servico_orcamento: ServicoOrcamento,
+        servico_orcamento: ServicoOrcamento, servico_pedido_venda: ServicoPedidoVenda,
     ) -> None:
         super().__init__()
         self.setWindowTitle("BackOffice B2B")
@@ -41,7 +43,9 @@ class MainWindow(QMainWindow):
         self.conteudo.addWidget(
             OrcamentoView(servico_orcamento, servico_cliente, servico_produto, servico_servico)
         )
-        self.conteudo.addWidget(self._construir_pagina_em_breve("Pedidos de Venda"))
+        self.conteudo.addWidget(
+            PedidoVendaView(servico_pedido_venda, servico_orcamento, servico_cliente)
+        )
 
         layout_principal.addWidget(self.conteudo, stretch=1)
         self.setCentralWidget(widget_central)

@@ -21,6 +21,8 @@ from src.servicos.servico_servico import ServicoServico
 from src.repositorios.sqlite.servico_repositorio_sqlite import ServicoRepositorioSQLite
 from src.repositorios.sqlite.orcamento_repositorio_sqlite import OrcamentoRepositorioSQLite
 from src.servicos.servico_orcamento import ServicoOrcamento
+from src.repositorios.sqlite.pedido_venda_repositorio_sqlite import PedidoVendaRepositorioSQLite
+from src.servicos.servico_pedido_venda import ServicoPedidoVenda
 
 
 def main() -> None:
@@ -35,6 +37,8 @@ def main() -> None:
     servico_orcamento = ServicoOrcamento(
         orcamento_repositorio, cliente_repositorio, tabela_preco_repositorio, produto_repositorio, servico_repositorio
     )
+    pedido_venda_repositorio = PedidoVendaRepositorioSQLite(conexao)
+    servico_pedido_venda = ServicoPedidoVenda(pedido_venda_repositorio, orcamento_repositorio)
 
     servico_cliente = ServicoCliente(cliente_repositorio, tabela_preco_repositorio)
     servico_tabela_preco = ServicoTabelaPreco(tabela_preco_repositorio, produto_repositorio, servico_repositorio)
@@ -45,7 +49,10 @@ def main() -> None:
     app = QApplication(sys.argv)
     app.setStyleSheet(FOLHA_DE_ESTILO)
 
-    janela = MainWindow(servico_cliente, servico_tabela_preco, servico_produto, servico_servico, servico_orcamento)
+    janela = MainWindow(
+        servico_cliente, servico_tabela_preco, servico_produto, servico_servico,
+        servico_orcamento, servico_pedido_venda,
+    )
     janela.show()
 
     codigo_saida = app.exec()
