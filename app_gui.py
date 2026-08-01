@@ -32,11 +32,12 @@ def main() -> None:
 
     servico_cliente = ServicoCliente(cliente_repositorio, tabela_preco_repositorio)
     servico_tabela_preco = ServicoTabelaPreco(tabela_preco_repositorio, produto_repositorio, servico_repositorio)
+    servico_produto = ServicoProduto(produto_repositorio)
 
     app = QApplication(sys.argv)
     app.setStyleSheet(FOLHA_DE_ESTILO)
 
-    janela = MainWindow(servico_cliente, servico_tabela_preco)
+    janela = MainWindow(servico_cliente, servico_tabela_preco, servico_produto)
     janela.show()
 
     codigo_saida = app.exec()

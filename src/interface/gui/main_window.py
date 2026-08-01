@@ -6,10 +6,15 @@ from PySide6.QtWidgets import (
 from src.interface.gui.telas.cliente_view import ClienteView
 from src.servicos.servico_cliente import ServicoCliente
 from src.servicos.servico_tabela_preco import ServicoTabelaPreco
+from src.interface.gui.telas.produto_view import ProdutoView
+from src.servicos.servico_produto import ServicoProduto
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, servico_cliente: ServicoCliente, servico_tabela_preco: ServicoTabelaPreco) -> None:
+    def __init__(
+        self, servico_cliente: ServicoCliente, servico_tabela_preco: ServicoTabelaPreco,
+        servico_produto: ServicoProduto,
+    ) -> None:
         super().__init__()
         self.setWindowTitle("BackOffice B2B")
         self.resize(1100, 700)
@@ -24,7 +29,7 @@ class MainWindow(QMainWindow):
         self.conteudo = QStackedWidget()
         self._pagina_clientes = ClienteView(servico_cliente, servico_tabela_preco)
         self.conteudo.addWidget(self._pagina_clientes)
-        self.conteudo.addWidget(self._construir_pagina_em_breve("Produtos"))
+        self.conteudo.addWidget(ProdutoView(servico_produto))
         self.conteudo.addWidget(self._construir_pagina_em_breve("Serviços"))
         self.conteudo.addWidget(self._construir_pagina_em_breve("Tabelas de Preço"))
         self.conteudo.addWidget(self._construir_pagina_em_breve("Orçamentos"))
