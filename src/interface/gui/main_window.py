@@ -10,6 +10,7 @@ from src.interface.gui.telas.produto_view import ProdutoView
 from src.servicos.servico_produto import ServicoProduto
 from src.interface.gui.telas.servico_view import ServicoView
 from src.servicos.servico_servico import ServicoServico
+from src.interface.gui.telas.tabela_preco_view import TabelaPrecoView
 
 
 class MainWindow(QMainWindow):
@@ -33,7 +34,7 @@ class MainWindow(QMainWindow):
         self.conteudo.addWidget(self._pagina_clientes)
         self.conteudo.addWidget(ProdutoView(servico_produto))
         self.conteudo.addWidget(ServicoView(servico_servico))
-        self.conteudo.addWidget(self._construir_pagina_em_breve("Tabelas de Preço"))
+        self.conteudo.addWidget(TabelaPrecoView(servico_tabela_preco, servico_produto, servico_servico))
         self.conteudo.addWidget(self._construir_pagina_em_breve("Orçamentos"))
         self.conteudo.addWidget(self._construir_pagina_em_breve("Pedidos de Venda"))
 

@@ -1,9 +1,8 @@
 """Tela de gestão de Clientes na GUI: listagem, cadastro, edição e associação de tabela de preço."""
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidget, QTableWidgetItem,
-    QDialog, QFormLayout, QLineEdit, QComboBox, QMessageBox, QHeaderView
+    QDialog, QFormLayout, QLineEdit, QComboBox, QMessageBox, QHeaderView, QCheckBox
 )
-from PySide6.QtCore import Qt
 
 from src.dominio.entidades.cliente import Cliente, TipoPessoa
 from src.servicos.servico_cliente import ServicoCliente
@@ -20,12 +19,17 @@ class ClienteView(QWidget):
 
     def _construir_interface(self) -> None:
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
 
         titulo = QLabel("Clientes")
         titulo.setObjectName("titulo")
+        titulo.setStyleSheet("padding-bottom: 0px;")
         layout.addWidget(titulo)
 
         barra_acoes = QHBoxLayout()
+        barra_acoes.setSpacing(8)
+
         botao_novo = QPushButton("+ Novo Cliente")
         botao_novo.clicked.connect(self._abrir_dialogo_novo_cliente)
         barra_acoes.addWidget(botao_novo)
@@ -35,27 +39,37 @@ class ClienteView(QWidget):
         botao_associar_tabela.clicked.connect(self._associar_tabela_preco)
         barra_acoes.addWidget(botao_associar_tabela)
 
-        botao_inativar = QPushButton("Inativar / Reativar")
-        botao_inativar.setObjectName("botaoPerigo")
-        botao_inativar.clicked.connect(self._alternar_status_cliente)
-        barra_acoes.addWidget(botao_inativar)
+        self._botao_alternar_status = QPushButton("Inativar")
+        self._botao_alternar_status.setObjectName("botaoPerigo")
+        self._botao_alternar_status.clicked.connect(self._alternar_status_cliente)
+        barra_acoes.addWidget(self._botao_alternar_status)
 
         barra_acoes.addStretch()
+
+        self._checkbox_mostrar_inativos = QCheckBox("Mostrar inativos")
+        self._checkbox_mostrar_inativos.stateChanged.connect(self._carregar_clientes)
+        barra_acoes.addWidget(self._checkbox_mostrar_inativos)
+
         layout.addLayout(barra_acoes)
 
         self._tabela = QTableWidget()
-        self._tabela.setColumnCount(6)
+        self._tabela.setColumnCount(7)
         self._tabela.setHorizontalHeaderLabels(
-            ["Id", "Nome", "Documento", "E-mail", "Telefone", "Tabela de Preço"]
+            ["Id", "Nome", "Documento", "E-mail", "Telefone", "Tabela de Preço", "Status"]
         )
         self._tabela.setAlternatingRowColors(True)
         self._tabela.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._tabela.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._tabela.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self._tabela.itemSelectionChanged.connect(self._ao_selecionar_cliente)
         layout.addWidget(self._tabela)
 
     def _carregar_clientes(self) -> None:
-        clientes = self._servico.listar_clientes_ativos()
+        if self._checkbox_mostrar_inativos.isChecked():
+            clientes = self._servico.listar_todos_os_clientes()
+        else:
+            clientes = self._servico.listar_clientes_ativos()
+
         self._tabela.setRowCount(len(clientes))
         for linha, cliente in enumerate(clientes):
             self._tabela.setItem(linha, 0, QTableWidgetItem(str(cliente.id)))
@@ -65,6 +79,22 @@ class ClienteView(QWidget):
             self._tabela.setItem(linha, 4, QTableWidgetItem(cliente.telefone))
             tabela_texto = str(cliente.tabela_preco_id) if cliente.tabela_preco_id else "—"
             self._tabela.setItem(linha, 5, QTableWidgetItem(tabela_texto))
+            status_texto = "Ativo" if cliente.ativo else "Inativo"
+            self._tabela.setItem(linha, 6, QTableWidgetItem(status_texto))
+
+        self._botao_alternar_status.setText("Inativar")
+        self._botao_alternar_status.setEnabled(False)
+
+    def _ao_selecionar_cliente(self) -> None:
+        """Ajusta o texto do botão (Inativar/Reativar) conforme o status do cliente selecionado."""
+        linha_atual = self._tabela.currentRow()
+        if linha_atual < 0:
+            self._botao_alternar_status.setEnabled(False)
+            return
+
+        status_texto = self._tabela.item(linha_atual, 6).text()
+        self._botao_alternar_status.setEnabled(True)
+        self._botao_alternar_status.setText("Reativar" if status_texto == "Inativo" else "Inativar")
 
     def _cliente_selecionado_id(self) -> int | None:
         linha_atual = self._tabela.currentRow()
@@ -107,16 +137,22 @@ class ClienteView(QWidget):
         if cliente_id is None:
             return
 
+        vai_reativar = self._botao_alternar_status.text() == "Reativar"
+        acao_texto = "reativar" if vai_reativar else "inativar"
+
         resposta = QMessageBox.question(
-            self, "Confirmar inativação",
-            f"Deseja inativar o cliente id {cliente_id}?",
+            self, f"Confirmar {acao_texto}ção" if not vai_reativar else "Confirmar reativação",
+            f"Deseja {acao_texto} o cliente id {cliente_id}?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if resposta != QMessageBox.StandardButton.Yes:
             return
 
         try:
-            self._servico.inativar_cliente(cliente_id)
+            if vai_reativar:
+                self._servico.reativar_cliente(cliente_id)
+            else:
+                self._servico.inativar_cliente(cliente_id)
             self._carregar_clientes()
         except ValueError as erro:
             QMessageBox.critical(self, "Erro", str(erro))
